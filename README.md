@@ -35,7 +35,7 @@ This project monitors air quality using a gas sensor and a DHT11 temperature and
 |----------------|-------------|
 | VCC            | 5V          |
 | GND            | GND         |
-| OUT (Analog)   | A0          |
+| A0             | A0          |
 
 ### Buzzer
 | Buzzer Pin | Arduino Pin |
