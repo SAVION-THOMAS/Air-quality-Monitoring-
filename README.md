@@ -84,5 +84,6 @@ This project monitors air quality using a gas sensor and a DHT11 temperature and
   - Verify the buzzer connections.
   - Check if the AQI threshold is being reached.
 
-Enjoy building your air quality monitoring system!
+If you think the code can be improved or that if something is wrong in the code, Feel free to contact me:D.
+My email is provided in my github profile.
 
