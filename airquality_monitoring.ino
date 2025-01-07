@@ -34,10 +34,14 @@ void setup() {
   display.display();
   delay(3000);
 
-  startupAnimation();
-
-  // Add warm-up delay for MQ135
+  // Warming up the MQ135 with animation
   Serial.println("Warming up MQ135 sensor...");
-  delay(30000); // 30-second warm-up time
+  unsigned long startTime = millis();
+  unsigned long warmUpDuration = 30000; // 30 seconds
+
+  while (millis() - startTime < warmUpDuration) {
+    startupAnimation(); // Run the animation during warm-up
+  }
+
   Serial.println("MQ135 sensor is ready.");
 }
