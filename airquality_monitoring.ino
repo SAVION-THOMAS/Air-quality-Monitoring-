@@ -1,142 +1,149 @@
-#include <SPI.h>
+#include <SPI.h> 
 #include <Wire.h>
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
 #include <DHT.h>
 
+// OLED display dimensions
 #define SCREEN_WIDTH 128
 #define SCREEN_HEIGHT 64
+
+// OLED reset pin
 #define OLED_RESET 4
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 
-#define sensor A0
+// DHT sensor setup
 #define DHT11PIN 2
-#define DHTTYPE DHT11
-#define BUZZER_PIN 7
+DHT dht(DHT11PIN, DHT11); // Initialize DHT sensor
 
+// Gas sensor setup
+#define GAS_SENSOR A0
+
+// Variables
 int gasLevel = 0;
-String quality = "";
-DHT dht(DHT11PIN, DHTTYPE);
+String airQuality = "";
 
-// Hysteresis thresholds
-int goodThreshold = 151;
-int poorThreshold = 200;
-int veryBadThreshold = 300;
-int toxicThreshold = 500;
-
-void sendSensor() {
-  float h = dht.readHumidity();
-  float t = dht.readTemperature();
-
-  if (isnan(h) || isnan(t)) {
-    Serial.println("Failed to read from DHT sensor!");
-    return;
-  }
-
+void displaySensorReadings(float temperature, float humidity) {
   display.setTextColor(WHITE);
   display.setTextSize(1);
+
   display.setCursor(0, 43);
-  display.print("Temp  :");
+  display.println("Temp :");
   display.setCursor(80, 43);
-  display.print(t, 1);
-  display.print("C");
+  display.print(temperature);
+  display.print(" C");
+
   display.setCursor(0, 56);
-  display.print("RH    :");
+  display.println("RH   :");
   display.setCursor(80, 56);
-  display.print(h, 1);
-  display.print("%");
+  display.print(humidity);
+  display.println(" %");
 }
 
-void air_sensor() {
-  gasLevel = analogRead(sensor);
+void readAirSensor() {
+  gasLevel = analogRead(GAS_SENSOR);
 
-  if (gasLevel < goodThreshold) {
-    quality = "  GOOD!";
-    digitalWrite(BUZZER_PIN, LOW);
-  } else if (gasLevel >= goodThreshold && gasLevel < poorThreshold) {
-    quality = "  Poor!";
-    digitalWrite(BUZZER_PIN, LOW);
-  } else if (gasLevel >= poorThreshold && gasLevel < veryBadThreshold) {
-    quality = "Very bad!";
-    digitalWrite(BUZZER_PIN, LOW);
-  } else if (gasLevel >= veryBadThreshold && gasLevel < toxicThreshold) {
-    quality = "Toxic!";
-    digitalWrite(BUZZER_PIN, HIGH);
-    delay(500);
-    digitalWrite(BUZZER_PIN, LOW);
-    delay(500);
+  if (gasLevel < 151) {
+    airQuality = "GOOD!";
+  } else if (gasLevel < 200) {
+    airQuality = "Poor!";
+  } else if (gasLevel < 300) {
+    airQuality = "Very bad!";
+  } else if (gasLevel < 500) {
+    airQuality = "Toxic!";
   } else {
-    quality = " Toxic";
-    digitalWrite(BUZZER_PIN, HIGH);
-    delay(500);
-    digitalWrite(BUZZER_PIN, LOW);
-    delay(500);
+    airQuality = "TOXIC!";
   }
 
   display.setTextColor(WHITE);
   display.setTextSize(1);
+
   display.setCursor(1, 5);
-  display.print("Air Quality:");
-  display.setTextSize(1);
-  display.setCursor(5, 23);
-  display.print(gasLevel);
-  display.setCursor(20, 23);
-  display.print(quality);
+  display.println("Air Quality:");
+  display.setCursor(4, 23);
+  display.print("Level: ");
+  display.println(gasLevel);
+  display.setCursor(4, 33);
+  display.println(airQuality);
+}
+
+void drawZoomInOutCircle(int centerX, int centerY) {
+  // Zoom in
+  for (int r = 0; r < 30; r++) { // Increase the radius from 0 to 30
+    display.clearDisplay();
+    display.drawCircle(centerX, centerY, r, WHITE);
+    display.display();
+    delay(50); // Increased delay to slow down the animation
+  }
+  
+  // Zoom out
+  for (int r = 30; r >= 0; r--) { // Decrease the radius from 30 to 0
+    display.clearDisplay();
+    display.drawCircle(centerX, centerY, r, WHITE);
+    display.display();
+    delay(50); // Increased delay to slow down the animation
+  }
 }
 
 void setup() {
   Serial.begin(9600);
-  pinMode(sensor, INPUT);
-  pinMode(BUZZER_PIN, OUTPUT);
   dht.begin();
 
-  if (!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) {
+  pinMode(GAS_SENSOR, INPUT);
+
+  if (!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) { // Address 0x3C for 128x64
     Serial.println(F("SSD1306 allocation failed"));
+    while (true);
   }
 
   display.clearDisplay();
   display.setTextColor(WHITE);
+
+  // Splash screen
+  display.setTextSize(2);
+  display.setCursor(46, 15);
+  display.println("Air");
   display.setTextSize(1);
-
-  int textWidth1 = (SCREEN_WIDTH - (11 * 6)) / 2;
-  display.setCursor(textWidth1, 15);
-  display.print("Air Quality");
-
-  int textWidth2 = (SCREEN_WIDTH - (11 * 6)) / 2;
-  display.setCursor(textWidth2, 35);
-  display.print("Monitoring");
-  
+  display.setCursor(20, 35);
+  display.println("Quality monitor");
   display.display();
-  delay(2000);
-  
+  delay(1500);
+
   display.clearDisplay();
-  int textWidth3 = (SCREEN_WIDTH - (13 * 6)) / 2;
-  display.setCursor(textWidth3, 15);
-  display.print("Designed By:");
-
-  int textWidth4 = (SCREEN_WIDTH - (18 * 6)) / 2;
-  display.setCursor(textWidth4, 35);
-  display.print("Savion Thomas Babu");
+  display.setTextSize(1);
+  display.setCursor(20, 20);
+  display.println("Designed By");
+  display.setCursor(20, 40);
+  display.println("Savion Thomas");
   display.display();
-  delay(3000);
+  delay(1500);
 
-  // Warming up the MQ135 with animation
-  Serial.println("Warming up MQ135 sensor...");
-  unsigned long startTime = millis();
-  unsigned long warmUpDuration = 30000; // 30 seconds
+  // Call the zoom-in and zoom-out circle animation
+  drawZoomInOutCircle(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2);
 
-  while (millis() - startTime < warmUpDuration) {
-    startupAnimation(); // Run the animation during warm-up
-  }
-
-  Serial.println("MQ135 sensor is ready.");
+  display.clearDisplay();
 }
-
 
 void loop() {
   display.clearDisplay();
-  air_sensor();
-  sendSensor();
+
+  // Read DHT11 sensor
+  float temperature = dht.readTemperature();
+  float humidity = dht.readHumidity();
+
+  if (isnan(temperature) || isnan(humidity)) {
+    Serial.println(F("Failed to read from DHT sensor!"));
+    display.setCursor(0, 43);
+    display.println("DHT Error!");
+  } else {
+    displaySensorReadings(temperature, humidity);
+  }
+
+  // Read and display air quality
+  readAirSensor();
+
+  // Update display
   display.display();
-  delay(500);
+
+  delay(2000); // Delay to allow readings to stabilize
 }
